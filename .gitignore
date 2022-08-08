@@ -13,3 +13,5 @@
 .vscode/settings.json
 */packaged.yaml
 .DS_Store
+.jqwik-database
+*/.jqwik-database
