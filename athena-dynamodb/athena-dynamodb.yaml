@@ -10,7 +10,7 @@ Metadata:
     Labels:
       - athena-federation
     HomePageUrl: 'https://github.com/awslabs/aws-athena-query-federation'
-    SemanticVersion: 2022.39.1
+    SemanticVersion: &SemanticVersion 2022.39.1
     SourceCodeUrl: 'https://github.com/awslabs/aws-athena-query-federation'
 Parameters:
   AthenaCatalogName:
@@ -50,9 +50,16 @@ Conditions:
   NotHasLambdaRole: !Equals [!Ref LambdaRole, ""]
 
 Resources:
-  ConnectorConfig:
+  AthenaDynamoDB:
     Type: 'AWS::Serverless::Function'
+    Metadata:
+      DockerTag: *SemanticVersion
+      DockerContext: ./
+      Dockerfile: Dockerfile
+      DockerBuildArgs:
+        version: *SemanticVersion
     Properties:
+      PackageType: Image
       Environment:
         Variables:
           disable_spill_encryption: !Ref DisableSpillEncryption
@@ -60,10 +67,7 @@ Resources:
           spill_prefix: !Ref SpillPrefix
           kms_key_id: !If [HasKMSKeyId, !Ref KMSKeyId, !Ref "AWS::NoValue"]
       FunctionName: !Ref AthenaCatalogName
-      Handler: "com.amazonaws.athena.connectors.dynamodb.DynamoDBCompositeHandler"
-      CodeUri: "./target/athena-dynamodb-2022.39.1.jar"
       Description: "Enables Amazon Athena to communicate with DynamoDB, making your tables accessible via SQL"
-      Runtime: java11
       Timeout: !Ref LambdaTimeout
       MemorySize: !Ref LambdaMemory
       Role: !If [NotHasLambdaRole, !GetAtt FunctionRole.Arn, !Ref LambdaRole]
