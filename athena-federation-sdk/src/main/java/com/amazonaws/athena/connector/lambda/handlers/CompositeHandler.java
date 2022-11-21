@@ -33,12 +33,27 @@ import com.amazonaws.athena.connector.lambda.udf.UserDefinedFunctionRequest;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestStreamHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.arrow.dataset.file.FileFormat;
+import org.apache.arrow.dataset.file.FileSystemDatasetFactory;
+import org.apache.arrow.dataset.jni.NativeMemoryPool;
+import org.apache.arrow.dataset.scanner.ScanOptions;
+import org.apache.arrow.dataset.scanner.Scanner;
+import org.apache.arrow.dataset.source.Dataset;
+import org.apache.arrow.dataset.source.DatasetFactory;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.ArrowReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.stream.StreamSupport;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * This class allows you to have a single Lambda function be responsible for both metadata and data operations by
@@ -121,27 +136,37 @@ public class CompositeHandler
      * implemented PingRequest handling.
      */
     public final void handleRequest(BlockAllocator allocator, FederationRequest rawReq, OutputStream outputStream, ObjectMapper objectMapper)
-            throws Exception
+            throws java.io.IOException, Exception
     {
-        if (rawReq instanceof PingRequest) {
-            try (PingResponse response = metadataHandler.doPing((PingRequest) rawReq)) {
-                assertNotNull(response);
-                objectMapper.writeValue(outputStream, response);
-            }
-            return;
-        }
+        String currentPath = new java.io.File(".").getCanonicalPath();
+        logger.info("Current dir:" + currentPath);
+        logger.info((Arrays.stream((new java.io.File(".")).listFiles()).map(x -> {
+            try {
+                return x.getCanonicalPath();
+            } catch (Exception e) { }
+            return "";
+        })).collect(Collectors.toList()).toString());
 
-        if (rawReq instanceof MetadataRequest) {
-            metadataHandler.doHandleRequest(allocator, objectMapper, (MetadataRequest) rawReq, outputStream);
-        }
-        else if (rawReq instanceof RecordRequest) {
-            recordHandler.doHandleRequest(allocator, objectMapper, (RecordRequest) rawReq, outputStream);
-        }
-        else if (udfhandler != null && rawReq instanceof UserDefinedFunctionRequest) {
-            udfhandler.doHandleRequest(allocator, objectMapper, (UserDefinedFunctionRequest) rawReq, outputStream);
-        }
-        else {
-            throw new IllegalArgumentException("Unknown request class " + rawReq.getClass());
+        // anonymous access to a public google cloud storage bucket
+        String uri = "s3://anonymous@voltrondata-labs-datasets/nyc-taxi?endpoint_override=https%3A%2F%2Fstorage.googleapis.com";
+        //String uri = "gs://anonymous@voltrondata-labs-datasets/nyc-taxi";
+        ScanOptions options = new ScanOptions(/*batchSize*/ 10);
+
+        try (
+            BufferAllocator allocatorAsdf = new RootAllocator();
+            DatasetFactory datasetFactory = new FileSystemDatasetFactory(allocatorAsdf, NativeMemoryPool.getDefault(), FileFormat.PARQUET, uri);
+            Dataset dataset = datasetFactory.finish();
+            Scanner scanner = dataset.newScan(options);
+            ArrowReader reader = scanner.scanBatches()
+        ) {
+            //Schema schema = datasetFactory.inspect();
+            //System.out.println(schema);
+            while (reader.loadNextBatch()) {
+              try (VectorSchemaRoot root = reader.getVectorSchemaRoot()) {
+                logger.info(root.contentToTSVString());
+                throw new Exception("DONE");
+              }
+            }
         }
     }
 

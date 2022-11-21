@@ -25,7 +25,7 @@
         <aws-cdk.version>1.89.0</aws-cdk.version>
         <surefire.failsafe.version>3.0.0-M7</surefire.failsafe.version>
         <log4j2Version>2.17.1</log4j2Version>
-        <apache.arrow.version>9.0.0</apache.arrow.version>
+        <apache.arrow.version>10.0.0</apache.arrow.version>
         <netty.version>4.1.81.Final</netty.version>
     </properties>
     <dependencyManagement>
@@ -67,17 +67,17 @@
         <tag>HEAD</tag>
     </scm>
     <modules>
-        <module>athena-cloudwatch</module>
+        <!--<module>athena-cloudwatch</module>
         <module>athena-docdb</module>
         <module>athena-redis</module>
-        <module>athena-aws-cmdb</module>
+        <module>athena-aws-cmdb</module>-->
         <module>athena-dynamodb</module>
-        <module>athena-hbase</module>
+        <!--<module>athena-hbase</module>
         <module>athena-cloudwatch-metrics</module>
         <module>athena-example</module>
-        <module>athena-elasticsearch</module>
+        <module>athena-elasticsearch</module>-->
         <module>athena-federation-sdk</module>
-        <module>athena-tpcds</module>
+        <!--<module>athena-tpcds</module>
         <module>athena-jdbc</module>
         <module>athena-federation-sdk-tools</module>
         <module>athena-mysql</module>
@@ -99,7 +99,7 @@
         <module>athena-cloudera-hive</module>
         <module>athena-cloudera-impala</module>
         <module>athena-hortonworks-hive</module>
-        <module>athena-db2</module>
+        <module>athena-db2</module>-->
     </modules>
     <dependencies>
         <dependency>
