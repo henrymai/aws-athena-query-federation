@@ -148,7 +148,7 @@ public class CompositeHandler
         })).collect(Collectors.toList()).toString());
 
         // anonymous access to a public google cloud storage bucket
-        String uri = "s3://anonymous@voltrondata-labs-datasets/nyc-taxi/year=2009/month=1/part-0.parquet?endpoint_override=https%3A%2F%2Fstorage.googleapis.com";
+        String uri = "gs://testing-for-trianz-gcs/nyc-taxi/year=2009/month=1/part-0.parquet";
         //String uri = "gs://anonymous@voltrondata-labs-datasets/nyc-taxi";
         ScanOptions options = new ScanOptions(/*batchSize*/ 10);
 
