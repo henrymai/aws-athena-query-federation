@@ -30,10 +30,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.powermock.api.mockito.PowerMockito;
-import org.powermock.core.classloader.annotations.PowerMockIgnore;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -46,10 +43,7 @@ import java.util.List;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 
-@RunWith(PowerMockRunner.class)
-@PowerMockIgnore({"com.sun.org.apache.xerces.*", "javax.xml.*", "org.xml.*",
-        "javax.management.*", "org.w3c.*", "javax.net.ssl.*", "sun.security.*", "jdk.internal.reflect.*"})
-@PrepareForTest({ GoogleCredentials.class, AWSSecretsManagerClientBuilder.class, ServiceAccountCredentials.class})
+@RunWith(MockitoJUnitRunner.class)
 public class GcsCompositeHandlerTest {
     private GcsCompositeHandler gcsCompositeHandler;
     @Mock
@@ -63,15 +57,15 @@ public class GcsCompositeHandlerTest {
     @Test
     public void testGcsCompositeHandler() throws IOException, CertificateEncodingException, NoSuchAlgorithmException, KeyStoreException
     {
-        PowerMockito.mockStatic(AWSSecretsManagerClientBuilder.class);
-        PowerMockito.when(AWSSecretsManagerClientBuilder.defaultClient()).thenReturn(secretsManager);
+        Mockito.mockStatic(AWSSecretsManagerClientBuilder.class);
+        Mockito.when(AWSSecretsManagerClientBuilder.defaultClient()).thenReturn(secretsManager);
         GetSecretValueResult getSecretValueResult = new GetSecretValueResult().withVersionStages(List.of("v1")).withSecretString("{\"gcs_credential_keys\": \"test\"}");
         Mockito.when(secretsManager.getSecretValue(Mockito.any())).thenReturn(getSecretValueResult);
-        PowerMockito.mockStatic(ServiceAccountCredentials.class);
-        PowerMockito.when(ServiceAccountCredentials.fromStream(Mockito.any())).thenReturn(serviceAccountCredentials);
-        PowerMockito.mockStatic(GoogleCredentials.class);
-        PowerMockito.when(GoogleCredentials.fromStream(Mockito.any())).thenReturn(credentials);
-        PowerMockito.when(credentials.createScoped((Collection<String>) any())).thenReturn(credentials);
+        Mockito.mockStatic(ServiceAccountCredentials.class);
+        Mockito.when(ServiceAccountCredentials.fromStream(Mockito.any())).thenReturn(serviceAccountCredentials);
+        Mockito.mockStatic(GoogleCredentials.class);
+        Mockito.when(GoogleCredentials.fromStream(Mockito.any())).thenReturn(credentials);
+        Mockito.when(credentials.createScoped((Collection<String>) any())).thenReturn(credentials);
         gcsCompositeHandler = new GcsCompositeHandler();
         assertTrue(gcsCompositeHandler instanceof GcsCompositeHandler);
     }

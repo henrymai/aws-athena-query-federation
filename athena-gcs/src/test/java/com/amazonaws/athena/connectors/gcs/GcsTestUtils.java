@@ -19,7 +19,14 @@
  */
 package com.amazonaws.athena.connectors.gcs;
 
+import org.apache.arrow.vector.complex.reader.FieldReader;
 import com.amazonaws.athena.connector.lambda.data.SchemaBuilder;
+import com.amazonaws.athena.connector.lambda.domain.predicate.ValueSet;
+import com.amazonaws.athena.connector.lambda.data.Block;
+import com.amazonaws.athena.connector.lambda.data.BlockAllocatorImpl;
+import com.amazonaws.athena.connector.lambda.domain.predicate.Marker;
+import com.amazonaws.athena.connector.lambda.domain.predicate.Range;
+import com.amazonaws.athena.connector.lambda.domain.predicate.SortedRangeSet;
 import com.amazonaws.services.glue.model.Column;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
@@ -35,6 +42,7 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -159,4 +167,15 @@ public class GcsTestUtils {
         return column;
     }
 
+    public static Map<String, ValueSet> createSummaryWithLValueRangeEqual(String fieldName, ArrowType fieldType, Object fieldValue)
+    {
+        Block block = Mockito.mock(Block.class);
+        FieldReader fieldReader = Mockito.mock(FieldReader.class);
+        Mockito.lenient().when(fieldReader.getField()).thenReturn(Field.nullable(fieldName, fieldType));
+        Mockito.lenient().when(block.getFieldReader(Mockito.anyString())).thenReturn(fieldReader);
+        Marker low = Marker.exactly(new BlockAllocatorImpl(), new ArrowType.Utf8(), fieldValue);
+        return Map.of(
+                fieldName, SortedRangeSet.of(false, new Range(low, low))
+        );
+    }
 }
