@@ -36,6 +36,11 @@ public enum SupportedTypes
     BIT(Types.MinorType.BIT),
     DATEMILLI(Types.MinorType.DATEMILLI),
     DATEDAY(Types.MinorType.DATEDAY),
+    // Comment out the lines between the dashes to reproduce the failure
+    // --------------------------------------------------------------
+    TIMESTAMPMICRO(Types.MinorType.TIMESTAMPMICRO),
+    TIMESTAMPMILLI(Types.MinorType.TIMESTAMPMILLI),
+    // --------------------------------------------------------------
     TIMESTAMPMILLITZ(Types.MinorType.TIMESTAMPMILLITZ),
     TIMESTAMPMICROTZ(Types.MinorType.TIMESTAMPMICROTZ),
     FLOAT8(Types.MinorType.FLOAT8),
