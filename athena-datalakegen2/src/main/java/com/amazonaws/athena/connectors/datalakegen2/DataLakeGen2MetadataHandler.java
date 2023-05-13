@@ -186,6 +186,7 @@ public class DataLakeGen2MetadataHandler extends JdbcMetadataHandler
         boolean found = false;
 
         SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
+        Map<String, Boolean> typeNameToIsSignedMap = getTypeNameToIsSignedMap(jdbcConnection.getMetaData());
         try (ResultSet resultSet = getColumns(jdbcConnection.getCatalog(), tableName, jdbcConnection.getMetaData());
              Connection connection = getJdbcConnectionFactory().getConnection(getCredentialProvider());
              PreparedStatement stmt = connection.prepareStatement(dataTypeQuery)) {
@@ -200,11 +201,7 @@ public class DataLakeGen2MetadataHandler extends JdbcMetadataHandler
             }
 
             while (resultSet.next()) {
-                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(
-                        resultSet.getInt("DATA_TYPE"),
-                        resultSet.getInt("COLUMN_SIZE"),
-                        resultSet.getInt("DECIMAL_DIGITS"),
-                        configOptions);
+                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(resultSet, typeNameToIsSignedMap, configOptions);
                 columnName = resultSet.getString("COLUMN_NAME");
 
                 dataType = hashMap.get(columnName);

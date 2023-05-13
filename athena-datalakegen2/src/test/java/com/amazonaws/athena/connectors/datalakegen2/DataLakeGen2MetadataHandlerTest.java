@@ -181,11 +181,24 @@ public class DataLakeGen2MetadataHandlerTest
             throws Exception
     {
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
-        String[] schema = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX"};
-        Object[][] values = {{Types.INTEGER, 12, "testCol1", 0, 0}, {Types.VARCHAR, 25, "testCol2", 0, 0},
-                {Types.TIMESTAMP, 93, "testCol3", 0, 0}, {Types.TIMESTAMP_WITH_TIMEZONE, 93, "testCol4", 0, 0}};
-        AtomicInteger rowNumber = new AtomicInteger(-1);
-        ResultSet resultSet = mockResultSet(schema, values, rowNumber);
+
+        String[] schema = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "TYPE_NAME"};
+        Object[][] values = {
+            {Types.INTEGER, 12, "testCol1", 0, 0, "INTEGER"},
+            {Types.VARCHAR, 25, "testCol2", 0, 0, "VARCHAR"},
+            {Types.TIMESTAMP, 93, "testCol3", 0, 0, "TIMESTAMP"},
+            {Types.TIMESTAMP_WITH_TIMEZONE, 93, "testCol4", 0, 0, "TIMESTAMP WITH TIME ZONE"}};
+
+        String[] typeInfoSchema = {"TYPE_NAME", "UNSIGNED_ATTRIBUTE"};
+        Object[][] typeInfoValues = {
+            {"INTEGER", false},
+            {"VARCHAR", false},
+            {"TIMESTAMP", false},
+            {"TIMESTAMP WITH TIME ZONE", false},
+        };
+
+        ResultSet resultSet = mockResultSet(schema, values, new AtomicInteger(-1));
+        ResultSet typeInfoResultSet = mockResultSet(typeInfoSchema, typeInfoValues, new AtomicInteger(-1));
 
         SchemaBuilder expectedSchemaBuilder = SchemaBuilder.newBuilder();
         expectedSchemaBuilder.addField(FieldBuilder.newBuilder("testCol1", org.apache.arrow.vector.types.Types.MinorType.INT.getType()).build());
@@ -197,6 +210,7 @@ public class DataLakeGen2MetadataHandlerTest
 
         TableName inputTableName = new TableName("TESTSCHEMA", "TESTTABLE");
         Mockito.when(connection.getMetaData().getColumns("testCatalog", inputTableName.getSchemaName(), inputTableName.getTableName(), null)).thenReturn(resultSet);
+        Mockito.when(connection.getMetaData().getTypeInfo()).thenReturn(typeInfoResultSet);
         Mockito.when(connection.getCatalog()).thenReturn("testCatalog");
         GetTableResponse getTableResponse = this.dataLakeGen2MetadataHandler.doGetTable(
                 blockAllocator, new GetTableRequest(this.federatedIdentity, "testQueryId", "testCatalog", inputTableName));

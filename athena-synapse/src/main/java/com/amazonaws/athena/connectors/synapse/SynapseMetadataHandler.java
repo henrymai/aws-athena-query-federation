@@ -401,15 +401,11 @@ public class SynapseMetadataHandler extends JdbcMetadataHandler
     private SchemaBuilder doDataTypeConversionForNonCompatible(Connection jdbcConnection, TableName tableName, HashMap<String, List<String>> columnNameAndDataTypeMap) throws SQLException
     {
         SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
-
+        Map<String, Boolean> typeNameToIsSignedMap = getTypeNameToIsSignedMap(jdbcConnection.getMetaData());
         try (ResultSet resultSet = getColumns(jdbcConnection.getCatalog(), tableName, jdbcConnection.getMetaData())) {
             boolean found = false;
             while (resultSet.next()) {
-                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(
-                        resultSet.getInt("DATA_TYPE"),
-                        resultSet.getInt("COLUMN_SIZE"),
-                        resultSet.getInt("DECIMAL_DIGITS"),
-                        configOptions);
+                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(resultSet, typeNameToIsSignedMap, configOptions);
                 String columnName = resultSet.getString("COLUMN_NAME");
                 String dataType = columnNameAndDataTypeMap.get(columnName).get(0);
 

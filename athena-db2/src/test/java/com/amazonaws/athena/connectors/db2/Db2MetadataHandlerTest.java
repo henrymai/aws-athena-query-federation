@@ -205,11 +205,22 @@ public class Db2MetadataHandlerTest extends TestBase {
         ResultSet dataTypeResultSet = mockResultSet(new String[] {"colname", "typename"}, new int[] {Types.VARCHAR, Types.VARCHAR}, colTypevalues, new AtomicInteger(-1));
         Mockito.when(dataTypePstmt.executeQuery()).thenReturn(dataTypeResultSet);
 
-        String[] schema = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX"};
-        Object[][] values = {{Types.INTEGER, 12, "testCol1", 0, 0}, {Types.VARCHAR, 25, "testCol2", 0, 0},
-                {Types.TIMESTAMP, 93, "testCol3", 0, 0}};
-        AtomicInteger rowNumber = new AtomicInteger(-1);
-        ResultSet resultSet = mockResultSet(schema, values, rowNumber);
+        String[] schema = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "TYPE_NAME"};
+        Object[][] values = {
+            {Types.INTEGER, 12, "testCol1", 0, 0, "INTEGER"},
+            {Types.VARCHAR, 25, "testCol2", 0, 0, "VARCHAR"},
+            {Types.TIMESTAMP, 93, "testCol3", 0, 0, "TIMESTAMP"}
+        };
+
+        String[] typeInfoSchema = {"TYPE_NAME", "UNSIGNED_ATTRIBUTE"};
+        Object[][] typeInfoValues = {
+            {"INTEGER", false},
+            {"VARCHAR", false},
+            {"TIMESTAMP", false},
+        };
+
+        ResultSet resultSet = mockResultSet(schema, values, new AtomicInteger(-1));
+        ResultSet typeInfoResultSet = mockResultSet(typeInfoSchema, typeInfoValues, new AtomicInteger(-1));
 
         SchemaBuilder expectedSchemaBuilder = SchemaBuilder.newBuilder();
         expectedSchemaBuilder.addField(FieldBuilder.newBuilder("testCol1", org.apache.arrow.vector.types.Types.MinorType.INT.getType()).build());
@@ -219,6 +230,7 @@ public class Db2MetadataHandlerTest extends TestBase {
         Schema expected = expectedSchemaBuilder.build();
 
         Mockito.when(connection.getMetaData().getColumns("testCatalog", schemaName, tableName, null)).thenReturn(resultSet);
+        Mockito.when(connection.getMetaData().getTypeInfo()).thenReturn(typeInfoResultSet);
         Mockito.when(connection.getCatalog()).thenReturn("testCatalog");
 
         TableName inputTableName = new TableName("TESTSCHEMA", "TESTTABLE");

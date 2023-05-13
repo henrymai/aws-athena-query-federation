@@ -259,16 +259,39 @@ public class ImpalaMetadataHandlerTest
     public void doGetTable()
             throws Exception
     {
-        String[] schema = {"type", "name"};
-        Object[][] values = {{"INTEGER", "case_number"}, {"VARCHAR", "case_location"},
-                {"TIMESTAMP","case_instance"},  {"DATE","case_date"}, {"BINARY","case_binary"}, {"DOUBLE","case_double"},
-                {"FLOAT","case_float"},  {"BOOLEAN","case_boolean"}};
+        String[] typeInfoSchema = {"TYPE_NAME", "UNSIGNED_ATTRIBUTE"};
+        Object[][] typeInfoValues = {
+            {"INTEGER", false},
+            {"VARCHAR", false},
+            {"TIMESTAMP", false},
+        };
+
+        String[] schema = {"data_type", "col_name", "type_name"};
+        Object[][] values = {
+            {"INTEGER", "case_number", "INTEGER"},
+            {"VARCHAR", "case_location", "VARCHAR"},
+            {"TIMESTAMP", "case_instance", "TIMESTAMP"},
+            {"DATE", "case_date", "DATE"},
+            {"BINARY", "case_binary", "BINARY"},
+            {"DOUBLE", "case_double", "DOUBLE"},
+            {"FLOAT", "case_float", "FLOAT"},
+            {"BOOLEAN", "case_boolean", "BOOLEAN"}
+        };
         AtomicInteger rowNumber = new AtomicInteger(-1);
         ResultSet resultSet = mockResultSet(schema, values, rowNumber);
-        String[] schema1 = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX"};
-        Object[][] values1 = {{Types.INTEGER, 12, "case_number", 0, 0}, {Types.VARCHAR, 25, "case_location", 0, 0},
-                {Types.TIMESTAMP, 93, "case_instance", 0, 0}, {Types.DATE, 91, "case_date", 0, 0},{Types.VARBINARY, 91, "case_binary", 0, 0},
-                {Types.DOUBLE, 91, "case_double", 0, 0},{Types.FLOAT, 91, "case_float", 0, 0}, {Types.BOOLEAN, 1, "case_boolean", 0, 0}};
+        ResultSet typeInfoResultSet = mockResultSet(typeInfoSchema, typeInfoValues, new AtomicInteger(-1));
+
+        String[] schema1 = {"DATA_TYPE", "COLUMN_SIZE", "COLUMN_NAME", "DECIMAL_DIGITS", "NUM_PREC_RADIX", "TYPE_NAME"};
+        Object[][] values1 = {
+            {Types.INTEGER, 12, "case_number", 0, 0, "INTEGER"},
+            {Types.VARCHAR, 25, "case_location", 0, 0, "VARCHAR"},
+            {Types.TIMESTAMP, 93, "case_instance", 0, 0, "TIMESTAMP"},
+            {Types.DATE, 91, "case_date", 0, 0, "DATE"},
+            {Types.VARBINARY, 91, "case_binary", 0, 0, "VARBINARY"},
+            {Types.DOUBLE, 91, "case_double", 0, 0, "DOUBLE"},
+            {Types.FLOAT, 91, "case_float", 0, 0, "FLOAT"},
+            {Types.BOOLEAN, 1, "case_boolean", 0, 0, "BOOLEAN"}
+        };
         ResultSet resultSet1 = mockResultSet(schema1, values1, new AtomicInteger(-1));
         TableName inputTableName = new TableName("TESTSCHEMA", "TESTTABLE");
         PreparedStatement preparestatement1 = Mockito.mock(PreparedStatement.class);
@@ -276,6 +299,7 @@ public class ImpalaMetadataHandlerTest
         Mockito.when(preparestatement1.executeQuery()).thenReturn(resultSet);
         Mockito.when(this.connection.getMetaData().getSearchStringEscape()).thenReturn(null);
         Mockito.when(this.connection.getMetaData().getColumns("testCatalog", inputTableName.getSchemaName(), inputTableName.getTableName(), null)).thenReturn(resultSet1);
+        Mockito.when(connection.getMetaData().getTypeInfo()).thenReturn(typeInfoResultSet);
         Mockito.when(this.connection.getCatalog()).thenReturn("testCatalog");
         GetTableResponse getTableResponse = this.impalaMetadataHandler.doGetTable(
                 this.blockAllocator, new GetTableRequest(this.federatedIdentity, "testQueryId", "testCatalog", inputTableName));

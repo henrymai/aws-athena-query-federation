@@ -62,7 +62,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -227,15 +229,11 @@ public abstract class JdbcMetadataHandler
             throws SQLException
     {
         SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
-
+        Map<String, Boolean> typeNameToIsSignedMap = getTypeNameToIsSignedMap(jdbcConnection.getMetaData());
         try (ResultSet resultSet = getColumns(jdbcConnection.getCatalog(), tableName, jdbcConnection.getMetaData())) {
             boolean found = false;
             while (resultSet.next()) {
-                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(
-                        resultSet.getInt("DATA_TYPE"),
-                        resultSet.getInt("COLUMN_SIZE"),
-                        resultSet.getInt("DECIMAL_DIGITS"),
-                        configOptions);
+                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(resultSet, typeNameToIsSignedMap, configOptions);
                 String columnName = resultSet.getString("COLUMN_NAME");
                 if (columnType != null && SupportedTypes.isSupported(columnType)) {
                     if (columnType instanceof ArrowType.List) {
@@ -341,5 +339,29 @@ public abstract class JdbcMetadataHandler
     {
         // Default ARRAY type is VARCHAR.
         return new ArrowType.Utf8();
+    }
+
+    // Subclasses of JdbcMetadataHandler are free to override this if their jdbc driver does not conform
+    // to the jdbc spec.
+    protected Map<String, Boolean> getTypeNameToIsSignedMap(DatabaseMetaData metadata)
+    {
+        try {
+            ResultSet rs = metadata.getTypeInfo();
+            Map<String, Boolean> resultMap = new HashMap<String, Boolean>();
+            while (rs.next()) {
+                resultMap.put(rs.getString("TYPE_NAME"), !rs.getBoolean("UNSIGNED_ATTRIBUTE"));
+            }
+            return resultMap;
+        }
+        catch (java.sql.SQLException ex) {
+            // It is possible that some JDBC drivers don't conform to the spec and either:
+            // - Don't have getTypeInfo() implemented
+            // - Don't have TYPE_NAME
+            // - Don't have UNSIGNED_ATTRIBUTE
+            // In all of those situations we will just default to an empty map because this is not critical
+            // at most this will cause us to infer the type as a signed type instead of an unsigned type.
+            LOGGER.warn("Unable to construct typeNameToIsSignedMap because: {}. Returning an empty map as the default", ex.getMessage());
+            return java.util.Collections.emptyMap();
+        }
     }
 }

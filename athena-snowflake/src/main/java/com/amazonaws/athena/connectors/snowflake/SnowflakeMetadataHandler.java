@@ -300,7 +300,7 @@ public class SnowflakeMetadataHandler extends JdbcMetadataHandler
          */
         String dataTypeQuery = "select COLUMN_NAME, DATA_TYPE from \"INFORMATION_SCHEMA\".\"COLUMNS\" WHERE TABLE_SCHEMA=? AND TABLE_NAME=?";
         SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
-
+        Map<String, Boolean> typeNameToIsSignedMap = getTypeNameToIsSignedMap(jdbcConnection.getMetaData());
         try (ResultSet resultSet = getColumns(jdbcConnection.getCatalog(), tableName, jdbcConnection.getMetaData());
              Connection connection = getJdbcConnectionFactory().getConnection(getCredentialProvider());
              PreparedStatement stmt = connection.prepareStatement(dataTypeQuery)) {
@@ -323,11 +323,7 @@ public class SnowflakeMetadataHandler extends JdbcMetadataHandler
             }
             boolean found = false;
             while (resultSet.next()) {
-                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(
-                        resultSet.getInt("DATA_TYPE"),
-                        resultSet.getInt("COLUMN_SIZE"),
-                        resultSet.getInt("DECIMAL_DIGITS"),
-                        configOptions);
+                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(resultSet, typeNameToIsSignedMap, configOptions);
                 String columnName = resultSet.getString(COLUMN_NAME);
                 String dataType = hashMap.get(columnName);
                 LOGGER.debug("columnName: " + columnName);

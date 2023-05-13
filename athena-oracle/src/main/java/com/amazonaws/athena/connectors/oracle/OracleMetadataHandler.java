@@ -63,6 +63,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 /**
@@ -269,7 +270,7 @@ public class OracleMetadataHandler
             throws Exception
     {
         SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
-
+        Map<String, Boolean> typeNameToIsSignedMap = getTypeNameToIsSignedMap(jdbcConnection.getMetaData());
         try (ResultSet resultSet = getColumns(jdbcConnection.getCatalog(), tableName, jdbcConnection.getMetaData());
              Connection connection = getJdbcConnectionFactory().getConnection(getCredentialProvider())) {
             boolean found = false;
@@ -277,19 +278,14 @@ public class OracleMetadataHandler
             /**
              * Getting original data type from oracle table for conversion
              */
-            try
-                    (PreparedStatement stmt = connection.prepareStatement("select COLUMN_NAME ,DATA_TYPE from USER_TAB_COLS where  table_name =?")) {
+            try (PreparedStatement stmt = connection.prepareStatement("select COLUMN_NAME ,DATA_TYPE from USER_TAB_COLS where  table_name =?")) {
                 stmt.setString(1, tableName.getTableName().toUpperCase());
                 ResultSet dataTypeResultSet = stmt.executeQuery();
                 while (dataTypeResultSet.next()) {
                     hashMap.put(dataTypeResultSet.getString(COLUMN_NAME).trim(), dataTypeResultSet.getString("DATA_TYPE").trim());
                 }
                 while (resultSet.next()) {
-                    ArrowType columnType = JdbcArrowTypeConverter.toArrowType(
-                            resultSet.getInt("DATA_TYPE"),
-                            resultSet.getInt("COLUMN_SIZE"),
-                            resultSet.getInt("DECIMAL_DIGITS"),
-                            configOptions);
+                    ArrowType columnType = JdbcArrowTypeConverter.toArrowType(resultSet, typeNameToIsSignedMap, configOptions);
                     String columnName = resultSet.getString(COLUMN_NAME);
                     /** Handling TIMESTAMP,DATE, 0 Precesion**/
                     if (columnType != null && columnType.getTypeID().equals(ArrowType.ArrowTypeID.Decimal)) {

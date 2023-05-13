@@ -24,7 +24,9 @@ import org.apache.arrow.adapter.jdbc.JdbcToArrowUtils;
 import org.apache.arrow.vector.types.DateUnit;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 
+import java.sql.ResultSet;
 import java.sql.Types;
+import java.util.Map;
 
 /**
  * Utility abstracts Jdbc to Arrow type conversions.
@@ -36,14 +38,30 @@ public final class JdbcArrowTypeConverter
     private JdbcArrowTypeConverter() {}
 
     /**
-     * Coverts Jdbc data type to Arrow data type.
+     * Converts Jdbc data type to Arrow data type.
+     *
+     * @param resultSet See {@link java.sql.ResultSet}
+     * @param typeNameToIsSignedMap a mapping from the "TYPE_NAME" to whether or not this type is signed.
+     * @return Arrow type. See {@link ArrowType}.
+     */
+    public static ArrowType toArrowType(ResultSet resultSet, Map<String, Boolean> typeNameToIsSignedMap, Map<String, String> configOptions) throws java.sql.SQLException
+    {
+        String typeName = resultSet.getString("TYPE_NAME");
+        boolean isSigned = typeNameToIsSignedMap.getOrDefault(typeName, true);
+        return toArrowType(resultSet.getInt("DATA_TYPE"), resultSet.getInt("COLUMN_SIZE"), resultSet.getInt("DECIMAL_DIGITS"), isSigned, configOptions);
+    }
+
+    /**
+     * Converts Jdbc data type to Arrow data type.
      *
      * @param jdbcType Jdbc integer type. See {@link java.sql.Types}.
      * @param precision Decimal precision.
      * @param scale Decimal scale.
+     * @param isSigned Whether or not this type is signed.
+     * @param configOptions config options that provide user overrides for the default precision and scale.
      * @return Arrow type. See {@link ArrowType}.
      */
-    public static ArrowType toArrowType(final int jdbcType, final int precision, final int scale, java.util.Map<String, String> configOptions)
+    public static ArrowType toArrowType(final int jdbcType, final int precision, final int scale, boolean isSigned, java.util.Map<String, String> configOptions)
     {
         int defaultScale = Integer.parseInt(configOptions.getOrDefault("default_scale", "0"));
         int resolvedPrecision = precision;
@@ -66,6 +84,12 @@ public final class JdbcArrowTypeConverter
         else if (arrowType instanceof ArrowType.Timestamp) {
             // Convert from Timestamp to DateMilli
             return new ArrowType.Date(DateUnit.MILLISECOND);
+        }
+        else if (arrowType instanceof ArrowType.Int) {
+            // Arrow's JdbcToArrowUtils.getArrowTypeFromJdbcType has a bug where it always
+            // sets ArrowType.Ints to be signed.
+            // So we fix it here by returning the proper ArrowType.Int with isSigned set properly.
+            return new ArrowType.Int(((ArrowType.Int) arrowType).getBitWidth(), isSigned);
         }
 
         return arrowType;

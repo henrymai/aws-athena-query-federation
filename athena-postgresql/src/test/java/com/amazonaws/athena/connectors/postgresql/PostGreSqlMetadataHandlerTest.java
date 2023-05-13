@@ -306,8 +306,16 @@ public class PostGreSqlMetadataHandlerTest
                 {Types.ARRAY, "string_array", 0, 0, "_text"},
                 {Types.ARRAY, "uuid_array", 0, 0, "_uuid"}
         };
+
+        String[] typeInfoSchema = {"TYPE_NAME", "UNSIGNED_ATTRIBUTE"};
+        Object[][] typeInfoValues = {
+            {"_int2", false},
+            {"_int8", false},
+        };
+
         AtomicInteger rowNumber = new AtomicInteger(-1);
         ResultSet resultSet = mockResultSet(schema, values, rowNumber);
+        ResultSet typeInfoResultSet = mockResultSet(typeInfoSchema, typeInfoValues, new AtomicInteger(-1));
 
         SchemaBuilder expectedSchemaBuilder = SchemaBuilder.newBuilder();
         expectedSchemaBuilder
@@ -329,6 +337,7 @@ public class PostGreSqlMetadataHandlerTest
 
         TableName inputTableName = new TableName("testSchema", "testTable");
         Mockito.when(connection.getMetaData().getColumns("testCatalog", inputTableName.getSchemaName(), inputTableName.getTableName(), null)).thenReturn(resultSet);
+        Mockito.when(connection.getMetaData().getTypeInfo()).thenReturn(typeInfoResultSet);
         Mockito.when(connection.getCatalog()).thenReturn("testCatalog");
 
         GetTableResponse getTableResponse = this.postGreSqlMetadataHandler.doGetTable(new BlockAllocatorImpl(),

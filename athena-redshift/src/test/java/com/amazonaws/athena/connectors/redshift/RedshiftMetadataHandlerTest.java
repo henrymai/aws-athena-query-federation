@@ -292,6 +292,14 @@ public class RedshiftMetadataHandlerTest
     {
         logger.info("doGetTableWithArrayColumns - enter");
 
+        String[] typeInfoSchema = {"TYPE_NAME", "UNSIGNED_ATTRIBUTE"};
+        Object[][] typeInfoValues = {
+            {"_int2", false},
+            {"_int4", false},
+            {"_int8", false},
+        };
+        ResultSet typeInfoResultSet = mockResultSet(typeInfoSchema, typeInfoValues, new AtomicInteger(-1));
+
         String[] schema = {"DATA_TYPE", "COLUMN_NAME",  "COLUMN_SIZE", "DECIMAL_DIGITS", "TYPE_NAME"};
         Object[][] values = {
                 {Types.ARRAY, "bool_array", 0, 0, "_bool"},
@@ -330,6 +338,7 @@ public class RedshiftMetadataHandlerTest
 
         TableName inputTableName = new TableName("testSchema", "testTable");
         Mockito.when(connection.getMetaData().getColumns("testCatalog", inputTableName.getSchemaName(), inputTableName.getTableName(), null)).thenReturn(resultSet);
+        Mockito.when(connection.getMetaData().getTypeInfo()).thenReturn(typeInfoResultSet);
         Mockito.when(connection.getCatalog()).thenReturn("testCatalog");
 
         GetTableResponse getTableResponse = this.redshiftMetadataHandler.doGetTable(new BlockAllocatorImpl(),

@@ -337,16 +337,34 @@ public class SynapseMetadataHandlerTest
         Schema PARTITION_SCHEMA = SchemaBuilder.newBuilder().addField("PARTITION_NUMBER", org.apache.arrow.vector.types.Types.MinorType.VARCHAR.getType()).build();
 
         BlockAllocator blockAllocator = new BlockAllocatorImpl();
-        String[] schema = {"DATA_TYPE", "COLUMN_NAME", "PRECISION", "SCALE"};
-        int[] types = {Types.INTEGER, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR};
-        Object[][] values = {{Types.INTEGER, "testCol1", 0, 0}, {Types.VARCHAR, "testCol2", 0, 0},
-                    {Types.TIMESTAMP, "testCol3", 0, 0}, {Types.TIMESTAMP_WITH_TIMEZONE, "testCol4", 0, 0}};
+
+        String[] typeInfoSchema = {"TYPE_NAME", "UNSIGNED_ATTRIBUTE"};
+        Object[][] typeInfoValues = {
+            {"INTEGER", false},
+            {"VARCHAR", false},
+            {"TIMESTAMP", false},
+            {"TIMESTAMP WITH TIME ZONE", false},
+        };
+        ResultSet typeInfoResultSet = mockResultSet(typeInfoSchema, typeInfoValues, new AtomicInteger(-1));
+
+        String[] schema = {"DATA_TYPE", "COLUMN_NAME", "PRECISION", "SCALE", "TYPE_NAME"};
+        int[] types = {Types.INTEGER, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.VARCHAR};
+        Object[][] values = {
+            {Types.INTEGER, "testCol1", 0, 0, "INTEGER"},
+            {Types.VARCHAR, "testCol2", 0, 0, "VARCHAR"},
+            {Types.TIMESTAMP, "testCol3", 0, 0, "TIMESTAMP"},
+            {Types.TIMESTAMP_WITH_TIMEZONE, "testCol4", 0, 0, "TIMESTAMP WITH TIME ZONE"}
+        };
         ResultSet resultSet = mockResultSet(schema, types, values, new AtomicInteger(-1));
 
-        String[] columns = {"DATA_TYPE", "COLUMN_SIZE", "DECIMAL_DIGITS", "COLUMN_NAME"};
-        int[] types2 = {Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR};
-        Object[][] values2 = {{Types.INTEGER, 12, 0, "testCol1"}, {Types.VARCHAR, 25, 0, "testCol2"},
-                {Types.TIMESTAMP, 93, 0, "testCol3"}, {Types.TIMESTAMP_WITH_TIMEZONE, 93, 0, "testCol4"}};
+        String[] columns = {"DATA_TYPE", "COLUMN_SIZE", "DECIMAL_DIGITS", "COLUMN_NAME", "TYPE_NAME"};
+        int[] types2 = {Types.INTEGER, Types.INTEGER, Types.INTEGER, Types.VARCHAR, Types.VARCHAR};
+        Object[][] values2 = {
+            {Types.INTEGER, 12, 0, "testCol1", "INTEGER"},
+            {Types.VARCHAR, 25, 0, "testCol2", "VARCHAR"},
+            {Types.TIMESTAMP, 93, 0, "testCol3", "TIMESTAMP"},
+            {Types.TIMESTAMP_WITH_TIMEZONE, 93, 0, "testCol4", "TIMESTAMP WITH TIME ZONE"}
+        };
         ResultSet resultSet2 = mockResultSet(columns, types2, values2, new AtomicInteger(-1));
 
         SchemaBuilder expectedSchemaBuilder = SchemaBuilder.newBuilder();
@@ -365,6 +383,7 @@ public class SynapseMetadataHandlerTest
 
         TableName inputTableName = new TableName("TESTSCHEMA", "TESTTABLE");
         Mockito.when(connection.getCatalog()).thenReturn("testCatalog");
+        Mockito.when(connection.getMetaData().getTypeInfo()).thenReturn(typeInfoResultSet);
         Mockito.when(connection.getMetaData().getColumns("testCatalog", inputTableName.getSchemaName(), inputTableName.getTableName(), null)).thenReturn(resultSet2);
 
         GetTableResponse getTableResponse = this.synapseMetadataHandler.doGetTable(

@@ -270,14 +270,14 @@ public class ImpalaMetadataHandler extends JdbcMetadataHandler
     private Schema getSchema(Connection jdbcConnection, TableName tableName, Schema partitionSchema) throws Exception
     {
         SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
+        Map<String, Boolean> typeNameToIsSignedMap = getTypeNameToIsSignedMap(jdbcConnection.getMetaData());
         try (ResultSet resultSet = getColumns(jdbcConnection.getCatalog(), tableName, jdbcConnection.getMetaData());
              Connection connection = getJdbcConnectionFactory().getConnection(getCredentialProvider())) {
             try (PreparedStatement psmt = connection.prepareStatement(
                 GET_METADATA_QUERY + tableName.getQualifiedTableName().toUpperCase())) {
                 Map<String, String> hashMap = getMetadataForGivenTable(psmt);
                 while (resultSet.next()) {
-                    ArrowType columnType = JdbcArrowTypeConverter.toArrowType(resultSet.getInt("DATA_TYPE"),
-                            resultSet.getInt("COLUMN_SIZE"), resultSet.getInt("DECIMAL_DIGITS"), configOptions);
+                    ArrowType columnType = JdbcArrowTypeConverter.toArrowType(resultSet, typeNameToIsSignedMap, configOptions);
                     String columnName = resultSet.getString(ImpalaConstants.COLUMN_NAME);
                     String dataType = hashMap.get(columnName);
                     LOGGER.debug("columnName:" + columnName);

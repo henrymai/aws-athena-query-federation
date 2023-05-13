@@ -63,6 +63,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -251,7 +252,7 @@ public class SaphanaMetadataHandler extends JdbcMetadataHandler
     {
         LOGGER.debug("SaphanaMetadataHandler:getSchema starting");
         SchemaBuilder schemaBuilder = SchemaBuilder.newBuilder();
-
+        Map<String, Boolean> typeNameToIsSignedMap = getTypeNameToIsSignedMap(jdbcConnection.getMetaData());
         try (ResultSet resultSet = getColumns(jdbcConnection.getCatalog(), tableName, jdbcConnection.getMetaData());
              Connection connection = getJdbcConnectionFactory().getConnection(getCredentialProvider())) {
             HashMap<String, String> hashMap = new HashMap<String, String>();
@@ -278,11 +279,7 @@ public class SaphanaMetadataHandler extends JdbcMetadataHandler
                 String columnName = resultSet.getString(SaphanaConstants.COLUMN_NAME);
 
                 LOGGER.debug("SaphanaMetadataHandler:getSchema determining column type of column {}", columnName);
-                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(
-                        resultSet.getInt("DATA_TYPE"),
-                        resultSet.getInt("COLUMN_SIZE"),
-                        resultSet.getInt("DECIMAL_DIGITS"),
-                        configOptions);
+                ArrowType columnType = JdbcArrowTypeConverter.toArrowType(resultSet, typeNameToIsSignedMap, configOptions);
 
                 LOGGER.debug("SaphanaMetadataHandler:getSchema column type of column {} is {}",
                         columnName, columnType);
